@@ -51,9 +51,9 @@ const IndentForm = ({ onSubmit, onCancel, taskList }) => {
   const DATA_SHEET_ID = "1lE5TdGcbmwVcVqbx-jftPIdmoGgg1DApNn4t9jZvGN8";
 
   // URLs and IDs for data submission(Repair System)
-  const SUBMIT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw0ofs6yopMfqLgA3V33EHh44kXR_rrqrf1hUKARLToPPhEtYhCIgt4ZOEktAVwgc1PIQ/exec";
-  const SUBMIT_SHEET_ID = "1NdI3kxXlyPdflmWr3Da53Dt9YHGRVRylm3naJLNWNHE";
-  const FOLDER_ID = "1bBEcDO50JUOcBgpR8e-4bATMRbYGx00U";
+  const SUBMIT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEiuVVQLhUEAUehvjkRxfjTJ2x6Q_wiQQ2yzGvf5aOm2Dm4ZLX6bMvQkrc9M34om-o/exec";
+  const SUBMIT_SHEET_ID = "1Gi6EVJ6ATYOmVPJDm-flLM3tuZazsqt11f9dhwUqrVQ";
+  const FOLDER_ID = "1zN7RJ-gXmChfie6dGaNEpl2F4gEjkI22";
 
   const fetchSheetData = async () => {
     const SHEET_NAME = "FormResponses";
