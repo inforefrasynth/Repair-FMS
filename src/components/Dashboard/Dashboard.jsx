@@ -10,12 +10,14 @@ import {
   PlusCircle,
   Users,
   Truck,
-  Plus
+  Plus,
+  Clock,
+  Package
 } from "lucide-react";
 import MetricCard from "./MetricCard";
 import ChartCard from "./ChartCard";
 import { mockDashboardMetrics } from "../../data/mockData";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { useAuth } from "../../context/AuthContext";
 import useDataStore from "../../store/dataStore";
 import Button from "../ui/Button";
@@ -51,7 +53,7 @@ const ListItemSkeleton = () => (
   </div>
 );
 
-const Dashboard = () => {
+const Dashboard = ({ setActiveTab }) => {
   const { user } = useAuth();
   const { vendors, transporters, setVendors, setTransporters } = useDataStore();
 
@@ -275,9 +277,10 @@ const Dashboard = () => {
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {loading ? (
           <>
+            <MetricCardSkeleton />
             <MetricCardSkeleton />
             <MetricCardSkeleton />
             <MetricCardSkeleton />
@@ -288,23 +291,88 @@ const Dashboard = () => {
               title="Total Indents"
               value={tasks?.length}
               icon={FileText}
-              color="bg-blue-500"
+              gradient="from-blue-600 via-indigo-600 to-violet-600"
+              trend="All Registered Tasks"
             />
             <MetricCard
               title="Repairs Completed"
               value={totalCompletedTask?.length}
               icon={CheckCircle}
-              color="bg-green-500"
+              gradient="from-emerald-400 via-teal-500 to-cyan-600"
+              trend={`${((totalCompletedTask?.length / Math.max(tasks?.length, 1)) * 100).toFixed(0)}% Completion Rate`}
+            />
+            <MetricCard
+              title="Pending Repairs"
+              value={pendingTasks?.length}
+              icon={Clock}
+              gradient="from-violet-500 via-purple-500 to-pink-500"
+              trend={`${((pendingTasks?.length / Math.max(tasks?.length, 1)) * 100).toFixed(0)}% Active Queue`}
             />
             <MetricCard
               title="Total Repair Cost"
-              value={`₹${totalRepairBill}`}
+              value={`₹${totalRepairBill.toLocaleString()}`}
               icon={DollarSign}
-              color="bg-orange-500"
-              trend={{ value: 5, isPositive: false }}
+              gradient="from-amber-500 via-orange-500 to-rose-500"
+              trend={`Average ₹${(totalRepairBill / Math.max(tasks?.length, 1)).toFixed(0)} per task`}
             />
           </>
         )}
+      </div>
+
+      {/* Quick Operations Panel */}
+      <div className="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-sm">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Quick Operations</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <button
+            onClick={() => setActiveTab && setActiveTab("indent")}
+            className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-blue-100/30 border border-blue-100 rounded-xl hover:from-blue-100 hover:to-blue-200/30 hover:scale-105 active:scale-[0.98] transition-all duration-200 group text-blue-700 font-bold text-sm shadow-sm"
+          >
+            <FileText className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform duration-200" />
+            New Indent
+          </button>
+          
+          <button
+            onClick={() => setActiveTab && setActiveTab("sent-machine")}
+            className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-amber-50 to-amber-100/30 border border-amber-100 rounded-xl hover:from-amber-100 hover:to-amber-200/30 hover:scale-105 active:scale-[0.98] transition-all duration-200 group text-amber-700 font-bold text-sm shadow-sm"
+          >
+            <Truck className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform duration-200" />
+            Sent to Vendor
+          </button>
+
+          <button
+            onClick={() => setActiveTab && setActiveTab("check-machine")}
+            className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-teal-50 to-teal-100/30 border border-teal-100 rounded-xl hover:from-teal-100 hover:to-teal-200/30 hover:scale-105 active:scale-[0.98] transition-all duration-200 group text-teal-700 font-bold text-sm shadow-sm"
+          >
+            <CheckCircle className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform duration-200" />
+            Check Machine
+          </button>
+
+          <button
+            onClick={() => setActiveTab && setActiveTab("store-in")}
+            className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-emerald-50 to-emerald-100/30 border border-emerald-100 rounded-xl hover:from-emerald-100 hover:to-emerald-200/30 hover:scale-105 active:scale-[0.98] transition-all duration-200 group text-emerald-700 font-bold text-sm shadow-sm"
+          >
+            <Package className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform duration-200" />
+            Store In
+          </button>
+
+          <button
+            onClick={() => setActiveTab && setActiveTab("make-payment")}
+            className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-rose-50 to-rose-100/30 border border-rose-100 rounded-xl hover:from-rose-100 hover:to-rose-200/30 hover:scale-105 active:scale-[0.98] transition-all duration-200 group text-rose-700 font-bold text-sm shadow-sm"
+          >
+            <CreditCard className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform duration-200" />
+            Make Payment
+          </button>
+
+          {user?.role === "admin" && (
+            <button
+              onClick={() => setActiveTab && setActiveTab("users")}
+              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-50 to-purple-100/30 border border-purple-100 rounded-xl hover:from-purple-100 hover:to-purple-200/30 hover:scale-105 active:scale-[0.98] transition-all duration-200 group text-purple-700 font-bold text-sm shadow-sm"
+            >
+              <Users className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform duration-200" />
+              Manage Users
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Charts Grid */}
@@ -387,17 +455,36 @@ const Dashboard = () => {
                     bottom: 20,
                   }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
+                  <defs>
+                    <linearGradient id="colorPending" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.9}/>
+                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.4}/>
+                    </linearGradient>
+                    <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.9}/>
+                      <stop offset="95%" stopColor="#059669" stopOpacity={0.4}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} />
+                  <YAxis tickLine={false} axisLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(0, 0, 0, 0.02)' }}
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      borderRadius: '12px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)',
+                    }}
+                  />
                   <Bar 
                     dataKey="value" 
-                    fill="#8884d8" 
-                    radius={[4, 4, 0, 0]}
+                    radius={[8, 8, 0, 0]}
                     animationDuration={1500}
                   >
-                    <LabelList dataKey="value" position="top" />
+                    <LabelList dataKey="value" position="top" style={{ fill: '#374151', fontWeight: 600, fontSize: 12 }} />
+                    <Cell fill="url(#colorPending)" />
+                    <Cell fill="url(#colorCompleted)" />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -421,27 +508,29 @@ const Dashboard = () => {
               ))}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {paymentTypeDistribution.map((payment, index) => {
-                const colors = ["bg-blue-500", "bg-green-500", "bg-orange-500"];
+                const colors = ["bg-indigo-500", "bg-emerald-500", "bg-amber-500", "bg-purple-500"];
+                const textColors = ["text-indigo-700", "text-emerald-700", "text-amber-700", "text-purple-700"];
+                const bgColors = ["bg-indigo-50", "bg-emerald-50", "bg-amber-50", "bg-purple-50"];
+                const pct = totalRepairBill > 0 ? (payment.amount / totalRepairBill) * 100 : 0;
+                
                 return (
-                  <div
-                    key={payment.type}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={`w-3 h-3 rounded-full ${
-                          colors[index % colors.length]
-                        }`}
-                      />
-                      <span className="text-sm font-medium text-gray-700">
+                  <div key={payment.type} className="space-y-2 p-3 rounded-xl hover:bg-gray-50/50 transition-colors duration-200">
+                    <div className="flex items-center justify-between">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${bgColors[index % bgColors.length]} ${textColors[index % textColors.length]}`}>
                         {payment.type}
                       </span>
+                      <span className="text-sm font-bold text-gray-900">
+                        ₹{payment.amount.toLocaleString()} <span className="text-xs font-normal text-gray-400 ml-1">({pct.toFixed(0)}%)</span>
+                      </span>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900">
-                      ₹{payment.amount.toLocaleString()}
-                    </span>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div
+                        className={`${colors[index % colors.length]} h-2 rounded-full transition-all duration-1000`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
                 );
               })}
@@ -465,38 +554,30 @@ const Dashboard = () => {
               ))}
             </div>
           ) : (
-            <div className="space-y-3">
-              {vendorWiseRepairCosts.map((vendor, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between"
-                >
-                  <span className="text-sm font-medium text-gray-700 truncate">
-                    {vendor.vendor}
-                  </span>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-20 bg-gray-200 rounded-full h-2">
+            <div className="space-y-4">
+              {vendorWiseRepairCosts.map((vendor, index) => {
+                const maxCost = Math.max(...vendorWiseRepairCosts.map(v => v.cost), 1);
+                const pct = (vendor.cost / maxCost) * 100;
+                
+                return (
+                  <div key={index} className="space-y-2 p-3 rounded-xl hover:bg-gray-50/50 transition-colors duration-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-700 capitalize">
+                        {vendor.vendor || "Unknown Vendor"}
+                      </span>
+                      <span className="text-sm font-bold text-gray-900">
+                        ₹{vendor.cost.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
                       <div
-                        className="bg-orange-500 h-2 rounded-full transition-all duration-500"
-                        style={{
-                          width: `${
-                            (vendor.cost /
-                              Math.max(
-                                ...vendorWiseRepairCosts.map(
-                                  (v) => v.cost
-                                )
-                              )) *
-                            100
-                          }%`,
-                        }}
+                        className="bg-gradient-to-r from-orange-400 to-rose-500 h-2 rounded-full transition-all duration-1000"
+                        style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-sm font-semibold text-gray-900 w-16">
-                      ₹{vendor.cost.toLocaleString()}
-                    </span>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </ChartCard>

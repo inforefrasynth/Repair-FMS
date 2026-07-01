@@ -213,19 +213,17 @@ const Indent = () => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-white">
-                <TableRow>
-                  <TableHead className="min-w-[120px] whitespace-nowrap">Task Number</TableHead>
-                  <TableHead className="min-w-[130px]">Firm Name</TableHead>
-                  <TableHead className="min-w-[150px]">Machine Name</TableHead>
-                  <TableHead className="min-w-[120px]">Serial No</TableHead>
-                  <TableHead className="min-w-[120px]">Doer</TableHead>
-                  <TableHead className="min-w-[120px]">Department</TableHead>
-                  <TableHead className="min-w-[160px]">Machine Part Name</TableHead>
-                  <TableHead className="min-w-[100px]">Priority</TableHead>
-                  <TableHead className="min-w-[110px]">Start Date</TableHead>
-                  <TableHead className="min-w-[110px]">End Date</TableHead>
-                  <TableHead className="min-w-[100px]">Status</TableHead>
-                </TableRow>
+                <TableHead className="min-w-[120px] whitespace-nowrap">Task Number</TableHead>
+                <TableHead className="min-w-[130px]">Firm Name</TableHead>
+                <TableHead className="min-w-[150px]">Machine Name</TableHead>
+                <TableHead className="min-w-[120px]">Serial No</TableHead>
+                <TableHead className="min-w-[120px]">Doer</TableHead>
+                <TableHead className="min-w-[120px]">Department</TableHead>
+                <TableHead className="min-w-[160px]">Machine Part Name</TableHead>
+                <TableHead className="min-w-[100px]">Priority</TableHead>
+                <TableHead className="min-w-[110px]">Start Date</TableHead>
+                <TableHead className="min-w-[110px]">End Date</TableHead>
+                <TableHead className="min-w-[100px]">Status</TableHead>
               </TableHeader>
             </Table>
           </div>

@@ -105,7 +105,7 @@ function AppContent() {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard setActiveTab={setActiveTab} />;
       case "indent":
         return <Indent />;
       case "sent-machine":

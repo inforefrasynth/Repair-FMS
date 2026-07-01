@@ -409,6 +409,55 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    else if (action === 'updateRow') {
+      try {
+        var keyColumn = params.keyColumn;
+        var keyValue = params.keyValue;
+
+        var data = sheet.getDataRange().getValues();
+        var headers = data[0];
+        var keyColIndex = headers.indexOf(keyColumn);
+
+        if (keyColIndex === -1) {
+          throw new Error("Key column '" + keyColumn + "' not found");
+        }
+
+        var rowIndex = -1;
+        for (var i = 1; i < data.length; i++) {
+          if (data[i][keyColIndex]?.toString().trim() === keyValue?.toString().trim()) {
+            rowIndex = i + 1; // 1-indexed
+            break;
+          }
+        }
+
+        if (rowIndex === -1) {
+          throw new Error("Row not found with key: " + keyValue);
+        }
+
+        // Update each field that was provided
+        for (let key in params) {
+          if (key !== 'action' && key !== 'sheetName' && key !== 'keyColumn' && key !== 'keyValue') {
+            var colIndex = headers.indexOf(key);
+            if (colIndex !== -1) {
+              sheet.getRange(rowIndex, colIndex + 1).setValue(params[key]);
+            }
+          }
+        }
+
+        return ContentService.createTextOutput(JSON.stringify({
+          success: true,
+          message: "Row updated successfully"
+        })).setMimeType(ContentService.MimeType.JSON);
+
+      } catch (error) {
+        return ContentService.createTextOutput(JSON.stringify({
+          success: false,
+          error: error.message,
+          message: "Update failed"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
     else {
       throw new Error("Unknown action: " + action);
     }

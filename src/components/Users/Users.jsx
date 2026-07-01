@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Search, Loader2Icon, ShieldAlert } from "lucide-react";
+import { Plus, Search, Loader2Icon, ShieldAlert, Edit } from "lucide-react";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
 import {
@@ -18,6 +18,7 @@ const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loaderSubmit, setLoaderSubmit] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Form states
   const [username, setUsername] = useState("");
@@ -85,6 +86,43 @@ const Users = () => {
     fetchUsers();
   }, []);
 
+  const handleAddClick = () => {
+    setIsEditMode(false);
+    setUsername("");
+    setPassword("");
+    setRole("user");
+    setFirmName("Pmmpl");
+    setSelectedPages({
+      Dashboard: true,
+      Indent: true,
+      "Sent to Vendor": false,
+      "Check Machin": false,
+      "Store In": false,
+      "Make Payment": false,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleEditClick = (userRow) => {
+    setIsEditMode(true);
+    setUsername(userRow.username);
+    setPassword(userRow.password);
+    setRole(userRow.role || "user");
+    setFirmName(userRow.firmName || "Pmmpl");
+    
+    const accessArray = (userRow.access || "").split(",").map(p => p.trim());
+    const initialPages = {
+      Dashboard: accessArray.includes("Dashboard"),
+      Indent: accessArray.includes("Indent"),
+      "Sent to Vendor": accessArray.includes("Sent to Vendor"),
+      "Check Machin": accessArray.some(p => p.toLowerCase().includes("check")),
+      "Store In": accessArray.includes("Store In"),
+      "Make Payment": accessArray.includes("Make Payment"),
+    };
+    setSelectedPages(initialPages);
+    setIsModalOpen(true);
+  };
+
   const handlePageAccessChange = (pageKey) => {
     setSelectedPages((prev) => ({
       ...prev,
@@ -92,7 +130,7 @@ const Users = () => {
     }));
   };
 
-  const handleAddUser = async (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
 
     if (!username.trim() || !password.trim()) {
@@ -100,7 +138,6 @@ const Users = () => {
       return;
     }
 
-    // Build comma-separated page access list
     const accessList = Object.entries(selectedPages)
       .filter(([_, allowed]) => allowed)
       .map(([pageKey]) => pageKey)
@@ -111,19 +148,31 @@ const Users = () => {
 
       const formPayload = new FormData();
       formPayload.append("sheetName", "Repair Login");
-      formPayload.append("action", "insert");
 
-      const userData = {
-        "User Name": username.trim(),
-        Password: password.trim(),
-        Role: role,
-        "Page Access": accessList,
-        "Firm Name": firmName,
-      };
+      if (isEditMode) {
+        formPayload.append("action", "updateRow");
+        formPayload.append("keyColumn", "User Name");
+        formPayload.append("keyValue", username.trim());
+        
+        formPayload.append("Password", password.trim());
+        formPayload.append("Role", role);
+        formPayload.append("Page Access", accessList);
+        formPayload.append("Firm Name", firmName);
+      } else {
+        formPayload.append("action", "insert");
+        
+        const userData = {
+          "User Name": username.trim(),
+          Password: password.trim(),
+          Role: role,
+          "Page Access": accessList,
+          "Firm Name": firmName,
+        };
 
-      Object.entries(userData).forEach(([key, val]) => {
-        formPayload.append(key, val);
-      });
+        Object.entries(userData).forEach(([key, val]) => {
+          formPayload.append(key, val);
+        });
+      }
 
       const response = await fetch(`${SCRIPT_URL}?headerRow=1`, {
         method: "POST",
@@ -133,9 +182,8 @@ const Users = () => {
       const result = await response.json();
 
       if (result.success || response.ok) {
-        toast.success("✅ User created successfully!");
+        toast.success(isEditMode ? "✅ User updated successfully!" : "✅ User created successfully!");
         
-        // Reset states
         setUsername("");
         setPassword("");
         setRole("user");
@@ -156,7 +204,7 @@ const Users = () => {
       }
     } catch (error) {
       console.error("Error saving user:", error);
-      toast.error("❌ Failed to add user");
+      toast.error(isEditMode ? "❌ Failed to update user" : "❌ Failed to add user");
     } finally {
       setLoaderSubmit(false);
     }
@@ -175,7 +223,7 @@ const Users = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-        <Button onClick={() => setIsModalOpen(true)}>
+        <Button onClick={handleAddClick}>
           <Plus className="w-4 h-4 mr-2" />
           Add User
         </Button>
@@ -210,18 +258,17 @@ const Users = () => {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[150px]">User Name</TableHead>
-                <TableHead className="min-w-[150px]">Password</TableHead>
-                <TableHead className="min-w-[120px]">Role</TableHead>
-                <TableHead className="min-w-[150px]">Firm Name</TableHead>
-                <TableHead className="min-w-[250px]">Page Access</TableHead>
-              </TableRow>
+              <TableHead className="min-w-[150px]">User Name</TableHead>
+              <TableHead className="min-w-[150px]">Password</TableHead>
+              <TableHead className="min-w-[120px]">Role</TableHead>
+              <TableHead className="min-w-[150px]">Firm Name</TableHead>
+              <TableHead className="min-w-[250px]">Page Access</TableHead>
+              <TableHead className="w-[100px] text-right">Actions</TableHead>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <div className="flex flex-col items-center justify-center">
                       <Loader2Icon className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin text-blue-500" />
                       <p className="mt-4 text-gray-600">Loading users list...</p>
@@ -230,7 +277,7 @@ const Users = () => {
                 </TableRow>
               ) : filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <p className="text-gray-500">No users found</p>
                   </TableCell>
                 </TableRow>
@@ -262,6 +309,15 @@ const Users = () => {
                     <TableCell className="text-gray-600 max-w-[300px] break-words">
                       {u.access}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <button
+                        onClick={() => handleEditClick(u)}
+                        className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-150 inline-flex items-center"
+                        title="Edit User"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -270,14 +326,14 @@ const Users = () => {
         </div>
       </div>
 
-      {/* Add User Modal */}
+      {/* Add/Edit User Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Add New User"
+        title={isEditMode ? "Edit User Details" : "Add New User"}
         size="md"
       >
-        <form onSubmit={handleAddUser} className="space-y-4">
+        <form onSubmit={handleFormSubmit} className="space-y-4">
           {/* User Name */}
           <div>
             <label
@@ -292,8 +348,11 @@ const Users = () => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="e.g. Subhash"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                isEditMode ? "bg-gray-100 cursor-not-allowed text-gray-500" : ""
+              }`}
               required
+              disabled={isEditMode}
             />
           </div>
 
@@ -388,7 +447,7 @@ const Users = () => {
             </Button>
             <Button type="submit" variant="primary" disabled={loaderSubmit}>
               {loaderSubmit && <Loader2Icon className="animate-spin mr-2" />}
-              Save User
+              {isEditMode ? "Update User" : "Save User"}
             </Button>
           </div>
         </form>
