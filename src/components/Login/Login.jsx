@@ -36,7 +36,8 @@ const handleSubmit = async (e) => {
       name: userData.name,
       role: userData.role,
       access: userData.access,
-      department: userData.department
+      department: userData.department,
+      firmName: userData.firmName
     });
 
     // Store the remember preference
@@ -113,22 +114,7 @@ const handleSubmit = async (e) => {
 
         
     //   </div>
-    //   {/* Fixed Footer */}
     // </div>
-    //   <footer className="bg-white border-t border-gray-200 py-3 px-4">
-    //     <div className="container mx-auto text-center text-sm text-gray-600">
-    //       Powered by{' '}
-    //       <a 
-    //         href="https://www.botivate.in" 
-    //         target="_blank" 
-    //         rel="noopener noreferrer"
-    //         className="text-indigo-600 hover:text-indigo-800 font-medium"
-    //       >
-    //         Botivate
-    //       </a>
-    //     </div>
-    //   </footer>
-    //   </>
 
 
 
@@ -215,21 +201,6 @@ const handleSubmit = async (e) => {
         </form>
       </div>
     </div>
-    
-    {/* Fixed Footer */}
-    <footer className="bg-white border-t border-gray-200 py-3 px-4">
-      <div className="container mx-auto text-center text-sm text-gray-600">
-        Powered by{' '}
-        <a 
-          href="https://www.botivate.in" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
-        >
-          Botivate
-        </a>
-      </div>
-    </footer>
   </div>
 </>
   );

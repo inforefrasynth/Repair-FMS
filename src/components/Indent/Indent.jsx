@@ -28,6 +28,12 @@ const Indent = () => {
       (task) => user?.role === "admin" || task.nameOfIndenter === user?.name
     )
     .filter(
+      (task) => {
+        if (!user?.firmName || user.firmName.toLowerCase() === "all") return true;
+        return (task.firmName || "").toLowerCase() === user.firmName.toLowerCase();
+      }
+    )
+    .filter(
       (task) =>
         (task.machineName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (task.taskNo || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -37,10 +43,9 @@ const Indent = () => {
         (task.machinePartName || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  const SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbxEiuVVQLhUEAUehvjkRxfjTJ2x6Q_wiQQ2yzGvf5aOm2Dm4ZLX6bMvQkrc9M34om-o/exec";
-  const SHEET_Id = "1Gi6EVJ6ATYOmVPJDm-flLM3tuZazsqt11f9dhwUqrVQ";
-  const FOLDER_ID = "1zN7RJ-gXmChfie6dGaNEpl2F4gEjkI22";
+  const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL;
+  const SHEET_Id = import.meta.env.VITE_SHEET_ID;
+  const FOLDER_ID = import.meta.env.VITE_FOLDER_ID;
 
   const fetchAllTasks = async () => {
     try {
@@ -65,8 +70,8 @@ const Indent = () => {
           return cells[index]?.v || "";
         };
 
-        // Get status from column AU (index 46)
-        const statusValue = getCellValue(46);
+        // Get status from column AV (index 47)
+        const statusValue = getCellValue(47);
         let status;
         if (statusValue.toLowerCase() === "complete") {
           status = "Complete";
@@ -80,20 +85,21 @@ const Indent = () => {
           id: `task-${index}`, // Add unique id for React keys
           timestamp: getCellValue(0),
           taskNo: getCellValue(1),
-          serialNo: getCellValue(2),
-          machineName: getCellValue(3),
-          machinePartName: getCellValue(4),
-          givenBy: getCellValue(5),
-          doerName: getCellValue(6),
-          problem: getCellValue(7),
-          enableReminder: getCellValue(8),
-          requireAttachment: getCellValue(9),
-          taskStartDate: getCellValue(10),
-          taskEndDate: getCellValue(11),
-          priority: getCellValue(12),
-          department: getCellValue(13),
-          location: getCellValue(14),
-          imageLink: getCellValue(15),
+          firmName: getCellValue(2),
+          serialNo: getCellValue(3),
+          machineName: getCellValue(4),
+          machinePartName: getCellValue(5),
+          givenBy: getCellValue(6),
+          doerName: getCellValue(7),
+          problem: getCellValue(8),
+          enableReminder: getCellValue(9),
+          requireAttachment: getCellValue(10),
+          taskStartDate: getCellValue(11),
+          taskEndDate: getCellValue(12),
+          priority: getCellValue(13),
+          department: getCellValue(14),
+          location: getCellValue(15),
+          imageLink: getCellValue(16),
           status: status,
         };
       });
@@ -209,6 +215,7 @@ const Indent = () => {
               <TableHeader className="bg-white">
                 <TableRow>
                   <TableHead className="min-w-[120px] whitespace-nowrap">Task Number</TableHead>
+                  <TableHead className="min-w-[130px]">Firm Name</TableHead>
                   <TableHead className="min-w-[150px]">Machine Name</TableHead>
                   <TableHead className="min-w-[120px]">Serial No</TableHead>
                   <TableHead className="min-w-[120px]">Doer</TableHead>
@@ -227,7 +234,7 @@ const Indent = () => {
               <TableBody>
                 {loadingTasks ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8">
+                    <TableCell colSpan={11} className="text-center py-8">
                       <div className="flex flex-col items-center justify-center">
                         <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                         <p className="mt-4 text-gray-600">Loading tasks...</p>
@@ -236,7 +243,7 @@ const Indent = () => {
                   </TableRow>
                 ) : filteredTasks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8">
+                    <TableCell colSpan={11} className="text-center py-8">
                       <p className="text-gray-500">No tasks found</p>
                     </TableCell>
                   </TableRow>
@@ -245,6 +252,11 @@ const Indent = () => {
                     <TableRow key={task.id || task.taskNo || Math.random()} className="hover:bg-gray-50">
                       <TableCell className="font-medium text-blue-600 min-w-[120px] whitespace-nowrap">
                         {task.taskNo || "N/A"}
+                      </TableCell>
+                      <TableCell className="min-w-[130px]">
+                        <div className="break-words" title={task.firmName || ""}>
+                          {truncateText(task.firmName, 20)}
+                        </div>
                       </TableCell>
                       <TableCell className="min-w-[150px]">
                         <div className="break-words" title={task.machineName || ""}>

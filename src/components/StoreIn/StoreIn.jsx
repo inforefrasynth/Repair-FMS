@@ -69,13 +69,15 @@ const StoreIn = () => {
     setIsModalOpen(true);
   };
 
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEiuVVQLhUEAUehvjkRxfjTJ2x6Q_wiQQ2yzGvf5aOm2Dm4ZLX6bMvQkrc9M34om-o/exec";
-  const SHEET_Id = "1Gi6EVJ6ATYOmVPJDm-flLM3tuZazsqt11f9dhwUqrVQ";
-  const FOLDER_ID = "1zN7RJ-gXmChfie6dGaNEpl2F4gEjkI22";
+  const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL;
+  const SHEET_Id = import.meta.env.VITE_SHEET_ID;
+  const FOLDER_ID = import.meta.env.VITE_FOLDER_ID;
 
-  const fetchAllTasks = async () => {
+  const fetchAllTasks = async (isBackground = false) => {
     try {
-      setLoadingTasks(true);
+      if (!isBackground) {
+        setLoadingTasks(true);
+      }
       const SHEET_NAME_TASK = "Repair System";
 
       const res = await fetch(
@@ -98,60 +100,69 @@ const StoreIn = () => {
           id: `store-task-${index}`, // Add unique id
           timestamp: getCellValue(0),
           taskNo: getCellValue(1),
-          serialNo: getCellValue(2),
-          machineName: getCellValue(3),
-          machinePartName: getCellValue(4),
-          givenBy: getCellValue(5),
-          doerName: getCellValue(6),
-          problem: getCellValue(7),
-          enableReminder: getCellValue(8),
-          requireAttachment: getCellValue(9),
-          taskStartDate: getCellValue(10),
-          taskEndDate: getCellValue(11),
-          priority: getCellValue(12),
-          department: getCellValue(13),
-          location: getCellValue(14),
-          imageUrl: getCellValue(15),
-          planned: getCellValue(16),
-          actual: getCellValue(17),
-          delay: getCellValue(18),
-          vendorName: getCellValue(19),
-          leadTimeToDeliverDays: getCellValue(20),
-          transporterName: getCellValue(21),
-          transportationCharges: getCellValue(22),
-          weighmentSlip: getCellValue(23),
-          transportingImageWithMachine: getCellValue(24),
-          paymentType: getCellValue(25),
-          howMuch: getCellValue(26),
-          planned1: getCellValue(27),
-          actual1: getCellValue(28),
-          tranporterName: getCellValue(30),
-          billImage: getCellValue(32),
-          billNo: getCellValue(33),
-          typeOfBill: getCellValue(34),
-          totalBillAmount: getCellValue(35),
-          toBePaidAmount: getCellValue(36),
-          planned2: getCellValue(37),
-          actual2: getCellValue(38),
-          delay2: getCellValue(39),
-          receivedQuantity: getCellValue(40),
-          billMatch: getCellValue(41),
-          productImage: getCellValue(42),
+          firmName: getCellValue(2),
+          serialNo: getCellValue(3),
+          machineName: getCellValue(4),
+          machinePartName: getCellValue(5),
+          givenBy: getCellValue(6),
+          doerName: getCellValue(7),
+          problem: getCellValue(8),
+          enableReminder: getCellValue(9),
+          requireAttachment: getCellValue(10),
+          taskStartDate: getCellValue(11),
+          taskEndDate: getCellValue(12),
+          priority: getCellValue(13),
+          department: getCellValue(14),
+          location: getCellValue(15),
+          imageUrl: getCellValue(16),
+          planned: getCellValue(17),
+          actual: getCellValue(18),
+          delay: getCellValue(19),
+          vendorName: getCellValue(20),
+          leadTimeToDeliverDays: getCellValue(21),
+          transporterName: getCellValue(22),
+          transportationCharges: getCellValue(23),
+          weighmentSlip: getCellValue(24),
+          transportingImageWithMachine: getCellValue(25),
+          paymentType: getCellValue(26),
+          howMuch: getCellValue(27),
+          planned1: getCellValue(28),
+          actual1: getCellValue(29),
+          tranporterName: getCellValue(31),
+          billImage: getCellValue(33),
+          billNo: getCellValue(34),
+          typeOfBill: getCellValue(35),
+          totalBillAmount: getCellValue(36),
+          toBePaidAmount: getCellValue(37),
+          planned2: getCellValue(38),
+          actual2: getCellValue(39),
+          delay2: getCellValue(40),
+          receivedQuantity: getCellValue(41),
+          billMatch: getCellValue(42),
+          productImage: getCellValue(43),
         };
       });
 
-      console.log("Formatted Store Tasks:", formattedTasks);
-      setRepairTasks(formattedTasks);
+      const userFirmName = user?.firmName || "";
+      const isAllFirm = !userFirmName || userFirmName.toLowerCase() === "all";
+
+      const filtered = formattedTasks.filter((task) => {
+        if (isAllFirm) return true;
+        return (task.firmName || "").toLowerCase() === userFirmName.toLowerCase();
+      });
+
+      console.log("Formatted Store Tasks (filtered):", filtered);
+      setRepairTasks(filtered);
       
       // Filter pending tasks (has planned2 but no actual2)
-      const pendingTasks = formattedTasks.filter(
+      const pendingTasks = filtered.filter(
         (task) => task.planned2 && !task.actual2
       );
       console.log("Pending Tasks:", pendingTasks);
       setPendingRepairTasks(pendingTasks);
 
       // Filter history tasks (has both planned2 and actual2)
-      const historyTasks = formattedTasks.filter(
+      const historyTasks = filtered.filter(
         (task) => task.planned2 && task.actual2
       );
       console.log("History Tasks:", historyTasks);
@@ -170,7 +181,8 @@ const StoreIn = () => {
   };
 
   useEffect(() => {
-    fetchAllTasks();
+    const hasData = repairTasks && repairTasks.length > 0;
+    fetchAllTasks(hasData);
   }, []);
 
   const uploadFileToDrive = async (file) => {

@@ -8,7 +8,8 @@ import {
   CreditCard,
   DollarSign,
   LogOut,
-  User
+  User,
+  Users
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -24,6 +25,10 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     // { id: 'repair-advance', label: 'Repair Advance', icon: CreditCard },
     { id: 'make-payment', label: 'Make Payment', icon: DollarSign },
   ];
+
+  if (user?.role === 'admin') {
+    menuItems.push({ id: 'users', label: 'Users', icon: Users });
+  }
 
   return (
     <div className="w-64 bg-white shadow-lg h-screen flex flex-col">
@@ -70,8 +75,6 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           <LogOut className="w-5 h-5" />
           <span className="font-medium">Logout</span>
         </button>
-        
-
       </div>
     </div>
   );

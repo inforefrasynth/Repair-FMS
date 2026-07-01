@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Plus, X, Upload, Loader2Icon } from "lucide-react";
 import Button from "../ui/Button";
 import toast from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
 
 const IndentForm = ({ onSubmit, onCancel, taskList }) => {
+  const { user } = useAuth();
   const [sheetData, setSheetData] = useState([]);
   const [doerName, setDoerName] = useState([]);
   const [giveByData, setGivenByData] = useState([]);
@@ -28,6 +30,13 @@ const IndentForm = ({ onSubmit, onCancel, taskList }) => {
   const [availableFrequencies, setAvailableFrequencies] = useState([]);
 
   const [selectedSerialNo, setSelectedSerialNo] = useState("");
+  const [selectedFirmName, setSelectedFirmName] = useState("");
+
+  useEffect(() => {
+    if (user?.firmName && user.firmName.toLowerCase() !== "all") {
+      setSelectedFirmName(user.firmName);
+    }
+  }, [user]);
   const [selectedGivenBy, setSelectedGivenBy] = useState("");
   const [selectedDoerName, setSelectedDoerName] = useState("");
   const [selectedTaskType, setSelectedTaskType] = useState("Select Task Type");
@@ -47,13 +56,13 @@ const IndentForm = ({ onSubmit, onCancel, taskList }) => {
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
   // Updated URLs and IDs for data fetching (Maintenance)
-  const DATA_FETCH_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWDU77ND7kYIIf__m_v3hlFv74-lF68mgSMjb0OadKnNU4XJFr74zAqnDQG0FARtjd/exec";
-  const DATA_SHEET_ID = "1lE5TdGcbmwVcVqbx-jftPIdmoGgg1DApNn4t9jZvGN8";
+  const DATA_FETCH_SCRIPT_URL = import.meta.env.VITE_DATA_FETCH_SCRIPT_URL;
+  const DATA_SHEET_ID = import.meta.env.VITE_DATA_SHEET_ID;
 
   // URLs and IDs for data submission(Repair System)
-  const SUBMIT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEiuVVQLhUEAUehvjkRxfjTJ2x6Q_wiQQ2yzGvf5aOm2Dm4ZLX6bMvQkrc9M34om-o/exec";
-  const SUBMIT_SHEET_ID = "1Gi6EVJ6ATYOmVPJDm-flLM3tuZazsqt11f9dhwUqrVQ";
-  const FOLDER_ID = "1zN7RJ-gXmChfie6dGaNEpl2F4gEjkI22";
+  const SUBMIT_SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL;
+  const SUBMIT_SHEET_ID = import.meta.env.VITE_SHEET_ID;
+  const FOLDER_ID = import.meta.env.VITE_FOLDER_ID;
 
   const fetchSheetData = async () => {
     const SHEET_NAME = "FormResponses";
@@ -227,6 +236,7 @@ const IndentForm = ({ onSubmit, onCancel, taskList }) => {
   const clearFormState = () => {
     setSelectedSerialNo("");
     setSelectedMachine("");
+    setSelectedFirmName("");
     setSelectedGivenBy("");
     setSelectedDoerName("");
     setSelectedTaskType("Select Task Type");
@@ -254,7 +264,7 @@ const IndentForm = ({ onSubmit, onCancel, taskList }) => {
     e.preventDefault();
 
     // Basic validation
-    if (!selectedMachine || !selectedSerialNo || !selectedDoerName || !selectedGivenBy) {
+    if (!selectedMachine || !selectedSerialNo || !selectedDoerName || !selectedGivenBy || !selectedFirmName) {
       toast.error("❌ Please fill in all required fields");
       return;
     }
@@ -281,6 +291,7 @@ const IndentForm = ({ onSubmit, onCancel, taskList }) => {
         }),
         "Serial No": selectedSerialNo,
         "Machine Name": selectedMachine,
+        "Firm Name": selectedFirmName,
         "Given By": selectedGivenBy,
         "Doer Name": selectedDoerName,
         "Enable Reminders": enableReminder ? "Yes" : "No",
@@ -375,6 +386,33 @@ const IndentForm = ({ onSubmit, onCancel, taskList }) => {
                   ))}
               </>
             )}
+          </select>
+        </div>
+
+        {/* Firm Name */}
+        <div>
+          <label
+            htmlFor="firmName"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Firm Name *
+          </label>
+          <select
+            id="firmName"
+            value={selectedFirmName}
+            onChange={(e) => setSelectedFirmName(e.target.value)}
+            className={`py-2 w-full rounded-md border border-gray-300 shadow-sm px-4 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              user?.firmName && user.firmName.toLowerCase() !== "all" ? "bg-gray-100 cursor-not-allowed" : ""
+            }`}
+            disabled={user?.firmName && user.firmName.toLowerCase() !== "all"}
+            required
+          >
+            <option value="">Select Firm Name</option>
+            {["Pmmpl", "Purab", "Rkl", "Refrasynth", "Refratech"].map((firm, index) => (
+              <option key={index} value={firm}>
+                {firm}
+              </option>
+            ))}
           </select>
         </div>
 

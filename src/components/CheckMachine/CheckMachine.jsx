@@ -24,7 +24,8 @@ const CheckMachine = () => {
     setRepairTasks,
     setPendingRepairTasks,
     setHistoryRepairTasks,
-    updateRepairTask
+    updateRepairTask,
+    transporters
   } = useDataStore();
   
   const [activeTab, setActiveTab] = useState("pending");
@@ -52,14 +53,15 @@ const CheckMachine = () => {
     setSelectedTask(task);
     setIsModalOpen(true);
   };
-  const SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbxEiuVVQLhUEAUehvjkRxfjTJ2x6Q_wiQQ2yzGvf5aOm2Dm4ZLX6bMvQkrc9M34om-o/exec";
-  const SHEET_Id = "1Gi6EVJ6ATYOmVPJDm-flLM3tuZazsqt11f9dhwUqrVQ";
-  const FOLDER_ID = "1zN7RJ-gXmChfie6dGaNEpl2F4gEjkI22";
+  const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL;
+  const SHEET_Id = import.meta.env.VITE_SHEET_ID;
+  const FOLDER_ID = import.meta.env.VITE_FOLDER_ID;
 
- const fetchAllTasks = async () => {
+  const fetchAllTasks = async (isBackground = false) => {
     try {
-      setLoadingTasks(true);
+      if (!isBackground) {
+        setLoadingTasks(true);
+      }
       const SHEET_NAME_TASK = "Repair System";
 
       const res = await fetch(
@@ -76,52 +78,61 @@ const CheckMachine = () => {
         return {
           timestamp: cells[0]?.v || "",
           taskNo: cells[1]?.v || "",
-          serialNo: cells[2]?.v || "",
-          machineName: cells[3]?.v || "",
-          machinePartName: cells[4]?.v || "",
-          givenBy: cells[5]?.v || "",
-          doerName: cells[6]?.v || "",
-          problem: cells[7]?.v || "",
-          enableReminder: cells[8]?.v || "",
-          requireAttachment: cells[9]?.v || "",
-          taskStartDate: cells[10]?.v || "",
-          taskEndDate: cells[11]?.v || "",
-          priority: cells[12]?.v || "",
-          department: cells[13]?.v || "",
-          location: cells[14]?.v || "",
-          imageUrl: cells[15]?.v || "",
-          planned: cells[16]?.v || "",
-          actual: cells[17]?.v || "",
-          delay: cells[18]?.v || "",
-          vendorName: cells[19]?.v || "",
-          leadTimeToDeliverDays: cells[20]?.v || "",
-          transporterName: cells[21]?.v || "",
-          transportationCharges: cells[22]?.v || "",
-          weighmentSlip: cells[23]?.v || "",
-          transportingImageWithMachine: cells[24]?.v || "",
-          paymentType: cells[25]?.v || "",
-          howMuch: cells[26]?.v || "",
-          planned1: cells[27]?.v || "",
-          actual1: cells[28]?.v || "",
-          tranporterName: cells[30]?.v || "",
-          billImage: cells[32]?.v || "",
-          billNo: cells[33]?.v || "",
-          typeOfBill: cells[34]?.v || "",
-          totalBillAmount: cells[35]?.v || "",
-          toBePaidAmount: cells[36]?.v || "",
+          firmName: cells[2]?.v || "",
+          serialNo: cells[3]?.v || "",
+          machineName: cells[4]?.v || "",
+          machinePartName: cells[5]?.v || "",
+          givenBy: cells[6]?.v || "",
+          doerName: cells[7]?.v || "",
+          problem: cells[8]?.v || "",
+          enableReminder: cells[9]?.v || "",
+          requireAttachment: cells[10]?.v || "",
+          taskStartDate: cells[11]?.v || "",
+          taskEndDate: cells[12]?.v || "",
+          priority: cells[13]?.v || "",
+          department: cells[14]?.v || "",
+          location: cells[15]?.v || "",
+          imageUrl: cells[16]?.v || "",
+          planned: cells[17]?.v || "",
+          actual: cells[18]?.v || "",
+          delay: cells[19]?.v || "",
+          vendorName: cells[20]?.v || "",
+          leadTimeToDeliverDays: cells[21]?.v || "",
+          transporterName: cells[22]?.v || "",
+          transportationCharges: cells[23]?.v || "",
+          weighmentSlip: cells[24]?.v || "",
+          transportingImageWithMachine: cells[25]?.v || "",
+          paymentType: cells[26]?.v || "",
+          howMuch: cells[27]?.v || "",
+          planned1: cells[28]?.v || "",
+          actual1: cells[29]?.v || "",
+          tranporterName: cells[31]?.v || "",
+          billImage: cells[33]?.v || "",
+          billNo: cells[34]?.v || "",
+          typeOfBill: cells[35]?.v || "",
+          totalBillAmount: cells[36]?.v || "",
+          toBePaidAmount: cells[37]?.v || "",
         };
       });
 
-      setRepairTasks(formattedTasks);
+      const userFirmName = user?.firmName || "";
+      const isAllFirm = !userFirmName || userFirmName.toLowerCase() === "all";
+
+      const filtered = formattedTasks.filter((task) => {
+        if (isAllFirm) return true;
+        return (task.firmName || "").toLowerCase() === userFirmName.toLowerCase();
+      });
+
+      setRepairTasks(filtered);
 
       // Set pending tasks - where AB (planned1) is not empty and AC (actual1) is empty
-      const pendingTasks = formattedTasks.filter(
+      const pendingTasks = filtered.filter(
         (task) => task.planned1 && !task.actual1
       );
       setPendingRepairTasks(pendingTasks);
 
       // Set history tasks - where both AB (planned1) and AC (actual1) are not empty
-      const historyTasks = formattedTasks.filter(
+      const historyTasks = filtered.filter(
         (task) => task.planned1 && task.actual1
       );
       setHistoryRepairTasks(historyTasks);
@@ -134,7 +145,8 @@ const CheckMachine = () => {
   };
 
   useEffect(() => {
-    fetchAllTasks();
+    const hasData = repairTasks && repairTasks.length > 0;
+    fetchAllTasks(hasData);
   }, []);
 
  const uploadFileToDrive = async (file) => {
@@ -504,8 +516,7 @@ const CheckMachine = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Transporter Name *
               </label>
-              <input
-                type="text"
+              <select
                 value={formData.transporterName || ""}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -514,8 +525,15 @@ const CheckMachine = () => {
                   }))
                 }
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium text-gray-800"
+              >
+                <option value="">Select Transporter Name</option>
+                {transporters.map((transporter, index) => (
+                  <option key={index} value={transporter}>
+                    {transporter}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

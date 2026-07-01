@@ -17,6 +17,8 @@ import toast from "react-hot-toast";
 const MakePayment = () => {
   const { user } = useAuth();
   const {
+    repairTasks,
+    setRepairTasks,
     repairPayments,
     pendingRepairPayments,
     historyRepairPayments,
@@ -58,14 +60,15 @@ const MakePayment = () => {
     setIsModalOpen(true);
   };
 
-  const SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbxEiuVVQLhUEAUehvjkRxfjTJ2x6Q_wiQQ2yzGvf5aOm2Dm4ZLX6bMvQkrc9M34om-o/exec";
-  const SHEET_Id = "1Gi6EVJ6ATYOmVPJDm-flLM3tuZazsqt11f9dhwUqrVQ";
-  const FOLDER_ID = "1zN7RJ-gXmChfie6dGaNEpl2F4gEjkI22";
+  const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL;
+  const SHEET_Id = import.meta.env.VITE_SHEET_ID;
+  const FOLDER_ID = import.meta.env.VITE_FOLDER_ID;
 
-   const fetchAllTasks = async () => {
+  const fetchAllTasks = async (isBackground = false) => {
     try {
-      setLoadingTasks(true);
+      if (!isBackground) {
+        setLoadingTasks(true);
+      }
       const SHEET_NAME_TASK = "Repair System";
 
       const res = await fetch(
@@ -82,57 +85,65 @@ const MakePayment = () => {
         return {
           timestamp: cells[0]?.v || "",
           taskNo: cells[1]?.v || "",
-          serialNo: cells[2]?.v || "",
-          machineName: cells[3]?.v || "",
-          machinePartName: cells[4]?.v || "",
-          givenBy: cells[5]?.v || "",
-          doerName: cells[6]?.v || "",
-          problem: cells[7]?.v || "",
-          enableReminder: cells[8]?.v || "",
-          requireAttachment: cells[9]?.v || "",
-          taskStartDate: cells[10]?.v || "",
-          taskEndDate: cells[11]?.v || "",
-          priority: cells[12]?.v || "",
-          department: cells[13]?.v || "",
-          location: cells[14]?.v || "",
-          imageUrl: cells[15]?.v || "",
-          planned: cells[16]?.v || "",
-          actual: cells[17]?.v || "",
-          delay: cells[18]?.v || "",
-          // vendorName: cells[19]?.v || "",
-          leadTimeToDeliverDays: cells[20]?.v || "",
-          transporterName: cells[21]?.v || "",
-          transportationCharges: cells[22]?.v || "",
-          weighmentSlip: cells[23]?.v || "",
-          transportingImageWithMachine: cells[24]?.v || "",
+          firmName: cells[2]?.v || "",
+          serialNo: cells[3]?.v || "",
+          machineName: cells[4]?.v || "",
+          machinePartName: cells[5]?.v || "",
+          givenBy: cells[6]?.v || "",
+          doerName: cells[7]?.v || "",
+          problem: cells[8]?.v || "",
+          enableReminder: cells[9]?.v || "",
+          requireAttachment: cells[10]?.v || "",
+          taskStartDate: cells[11]?.v || "",
+          taskEndDate: cells[12]?.v || "",
+          priority: cells[13]?.v || "",
+          department: cells[14]?.v || "",
+          location: cells[15]?.v || "",
+          imageUrl: cells[16]?.v || "",
+          planned: cells[17]?.v || "",
+          actual: cells[18]?.v || "",
+          delay: cells[19]?.v || "",
+          leadTimeToDeliverDays: cells[21]?.v || "",
+          transporterName: cells[22]?.v || "",
+          transportationCharges: cells[23]?.v || "",
+          weighmentSlip: cells[24]?.v || "",
+          transportingImageWithMachine: cells[25]?.v || "",
 
-          vendorName: cells[19]?.v || "",
-          leadTimeToDeliverDays: cells[20]?.v || "",
-          paymentType: cells[25]?.v || "",
-          howMuch: cells[26]?.v || "",
-          transportationCharges: cells[22]?.v || "",
+          vendorName: cells[20]?.v || "",
+          paymentType: cells[26]?.v || "",
+          howMuch: cells[27]?.v || "",
 
-          planned1: cells[27]?.v || "",
-          actual1: cells[28]?.v || "",
-          tranporterName: cells[30]?.v || "",
-          billImage: cells[32]?.v || "",
-          billNo: cells[33]?.v || "",
-          typeOfBill: cells[34]?.v || "",
-          totalBillAmount: cells[35]?.v || "",
-          toBePaidAmount: cells[36]?.v || "",
+          planned1: cells[28]?.v || "",
+          actual1: cells[29]?.v || "",
+          tranporterName: cells[31]?.v || "",
+          billImage: cells[33]?.v || "",
+          billNo: cells[34]?.v || "",
+          typeOfBill: cells[35]?.v || "",
+          totalBillAmount: cells[36]?.v || "",
+          toBePaidAmount: cells[37]?.v || "",
 
-          planned2: cells[37]?.v || "",
-          actual2: cells[38]?.v || "",
-          delay2: cells[39]?.v || "",
-          receivedQuantity: cells[40]?.v || "",
-          billMatch: cells[41]?.v ,
-          productImage: cells[42]?.v || "",
-          planned4:cells[43]?.v||"",
-          actual4:cells[44]?.v||""
+          planned2: cells[38]?.v || "",
+          actual2: cells[39]?.v || "",
+          delay2: cells[40]?.v || "",
+          receivedQuantity: cells[41]?.v || "",
+          billMatch: cells[42]?.v ,
+          productImage: cells[43]?.v || "",
+          planned4: cells[44]?.v || "",
+          actual4: cells[45]?.v || "",
         };
       });
 
-        const pendingTasks = formattedTasks.filter(
+      const userFirmName = user?.firmName || "";
+      const isAllFirm = !userFirmName || userFirmName.toLowerCase() === "all";
+
+      const filtered = formattedTasks.filter((task) => {
+        if (isAllFirm) return true;
+        return (task.firmName || "").toLowerCase() === userFirmName.toLowerCase();
+      });
+
+      setRepairTasks(filtered);
+
+      const pendingTasks = filtered.filter(
         (task) => task.planned4 && !task.actual4
       );
       setPendingRepairPayments(pendingTasks);
@@ -145,9 +156,11 @@ const MakePayment = () => {
     }
   };
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (isBackground = false) => {
     try {
-      setLoadingTasks(true);
+      if (!isBackground) {
+        setLoadingTasks(true);
+      }
       const SHEET_NAME_PAYMENTS = "Repair FMS Advance Payment";
 
       const res = await fetch(
@@ -176,8 +189,13 @@ const MakePayment = () => {
       };
     });
 
-    setRepairPayments(formattedPayments);
-      setHistoryRepairPayments(formattedPayments);
+      const allowedTaskNos = new Set(useDataStore.getState().repairTasks.map(t => t.taskNo));
+      const filteredPayments = formattedPayments.filter((payment) => 
+        allowedTaskNos.has(payment.repairTaskNo)
+      );
+
+      setRepairPayments(filteredPayments);
+      setHistoryRepairPayments(filteredPayments);
 
     } catch (err) {
       console.error("Error fetching payments:", err);
@@ -188,8 +206,12 @@ const MakePayment = () => {
   };
 
   useEffect(() => {
-    fetchAllTasks();
-    fetchPayments();
+    const hasData = repairTasks && repairTasks.length > 0;
+    const init = async () => {
+      await fetchAllTasks(hasData);
+      await fetchPayments(hasData);
+    };
+    init();
   }, []);
 
  const handleSubmit = async (e) => {

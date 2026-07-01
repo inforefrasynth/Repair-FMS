@@ -1,9 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { FileText, CheckCircle, DollarSign, BarChart3 } from "lucide-react";
+import {
+  FileText,
+  CheckCircle,
+  DollarSign,
+  BarChart3,
+  TrendingUp,
+  CreditCard,
+  Building,
+  PlusCircle,
+  Users,
+  Truck,
+  Plus
+} from "lucide-react";
 import MetricCard from "./MetricCard";
 import ChartCard from "./ChartCard";
 import { mockDashboardMetrics } from "../../data/mockData";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
+import { useAuth } from "../../context/AuthContext";
+import useDataStore from "../../store/dataStore";
+import Button from "../ui/Button";
+import toast from "react-hot-toast";
 
 // Skeleton Loader Components
 const MetricCardSkeleton = () => (
@@ -36,9 +52,19 @@ const ListItemSkeleton = () => (
 );
 
 const Dashboard = () => {
+  const { user } = useAuth();
+  const { vendors, transporters, setVendors, setTransporters } = useDataStore();
+
+  const [masterType, setMasterType] = useState("vendor");
+  const [masterValue, setMasterValue] = useState("");
+  const [masterSubmitting, setMasterSubmitting] = useState(false);
+
   const metrics = mockDashboardMetrics;
 
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState(() => {
+    const cachedTasks = useDataStore.getState().repairTasks;
+    return cachedTasks || [];
+  });
   const [pendingTasks, setPendingTasks] = useState([]);
   const [totalCompletedTask, setTotalCompletedTask] = useState([]);
   const [totalRepairBill, setTotalRepairBill] = useState(0);
@@ -46,16 +72,26 @@ const Dashboard = () => {
   const [paymentTypeDistribution, setPaymentTypeDistribution] = useState([]);
   const [vendorWiseRepairCosts, setVendorWiseRepairCosts] = useState([]);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    const cachedTasks = useDataStore.getState().repairTasks;
+    return !cachedTasks || cachedTasks.length === 0;
+  });
 
-  const SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbxEiuVVQLhUEAUehvjkRxfjTJ2x6Q_wiQQ2yzGvf5aOm2Dm4ZLX6bMvQkrc9M34om-o/exec";
-  const SHEET_Id = "1Gi6EVJ6ATYOmVPJDm-flLM3tuZazsqt11f9dhwUqrVQ";
-  const FOLDER_ID = "1IUX8rnhuodWWPQ2PPAFurz-S1Xoz-9h5";
+  const [loadingMaster, setLoadingMaster] = useState(() => {
+    const state = useDataStore.getState();
+    const hasMaster = (state.vendors && state.vendors.length > 0) || (state.transporters && state.transporters.length > 0);
+    return !hasMaster;
+  });
 
-  const fetchAllTasks = async () => {
+  const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL;
+  const SHEET_Id = import.meta.env.VITE_SHEET_ID;
+  const FOLDER_ID = import.meta.env.VITE_FOLDER_ID;
+
+  const fetchAllTasks = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) {
+        setLoading(true);
+      }
       const SHEET_NAME_TASK = "Repair System";
 
       const res = await fetch(
@@ -70,31 +106,113 @@ const Dashboard = () => {
         const cells = row.c;
 
         return {
-          status: cells[46]?.v || "",
-          totalBillRepair: cells[35]?.v || "",
-          department: cells[13]?.v || "",
-          paymentType: cells[25]?.v || "",
-          vendorName: cells[19]?.v || "",
+          status: cells[47]?.v || "",
+          totalBillRepair: cells[36]?.v || "",
+          department: cells[14]?.v || "",
+          paymentType: cells[26]?.v || "",
+          vendorName: cells[20]?.v || "",
+          firmName: cells[2]?.v || "",
         };
       });
 
-      setTasks(formattedTasks);
-      const pendingTasks = formattedTasks.filter(
-        (task) => task.status === "Pending"
-      );
-      setPendingTasks(pendingTasks);
+      const userFirmName = user?.firmName || "";
+      const isAllFirm = !userFirmName || userFirmName.toLowerCase() === "all";
 
-      const compeletedTask = formattedTasks.filter(
-        (task) => task.status === "Completed"
+      const filtered = formattedTasks.filter((task) => {
+        if (isAllFirm) return true;
+        return (task.firmName || "").toLowerCase() === userFirmName.toLowerCase();
+      });
+
+      setTasks(filtered);
+      useDataStore.setState({ repairTasks: filtered });
+
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMasterData = async (isBackground = false) => {
+    try {
+      if (!isBackground) {
+        setLoadingMaster(true);
+      }
+      const SHEET_NAME_MASTER = "Master";
+      const res = await fetch(
+        `${SCRIPT_URL}?sheetId=${SHEET_Id}&sheet=${SHEET_NAME_MASTER}`
       );
+      const result = await res.json();
+      if (result.success && result.table && result.table.rows) {
+        const rows = result.table.rows;
+        const loadedVendors = rows
+          .map((row) => row.c[0]?.v)
+          .filter((v) => v !== null && v !== undefined && v.toString().trim() !== "");
+        const loadedTransporters = rows
+          .map((row) => row.c[1]?.v)
+          .filter((v) => v !== null && v !== undefined && v.toString().trim() !== "");
+
+        setVendors(loadedVendors);
+        setTransporters(loadedTransporters);
+      }
+    } catch (err) {
+      console.error("Error fetching master lists:", err);
+    } finally {
+      setLoadingMaster(false);
+    }
+  };
+
+  const handleMasterSubmit = async (e) => {
+    e.preventDefault();
+    if (!masterValue.trim()) return;
+
+    try {
+      setMasterSubmitting(true);
+      const formPayload = new FormData();
+      formPayload.append("sheetName", "Master");
+      formPayload.append("action", "insert");
+
+      if (masterType === "vendor") {
+        formPayload.append("Vendor Name", masterValue.trim());
+      } else {
+        formPayload.append("Transporter Name", masterValue.trim());
+      }
+
+      const response = await fetch(`${SCRIPT_URL}?headerRow=1`, {
+        method: "POST",
+        body: formPayload,
+      });
+
+      const result = await response.json();
+      if (result.success || response.ok) {
+        toast.success(`Successfully added ${masterType === "vendor" ? "Vendor" : "Transporter"}!`);
+        setMasterValue("");
+        fetchMasterData();
+      } else {
+        toast.error("Failed to add to master lists");
+      }
+    } catch (error) {
+      console.error("Error submitting master:", error);
+      toast.error("Error submitting to master");
+    } finally {
+      setMasterSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tasks.length > 0) {
+      const pending = tasks.filter((task) => task.status === "Pending");
+      setPendingTasks(pending);
+
+      const compeletedTask = tasks.filter((task) => task.status === "Completed");
       setTotalCompletedTask(compeletedTask);
 
-      const totalRepairBill = formattedTasks.reduce((sum, item) => {
+      const totalRepairBill = tasks.reduce((sum, item) => {
         return sum + Number(item.totalBillRepair || 0);
       }, 0);
       setTotalRepairBill(totalRepairBill);
 
-      const departmentCounts = formattedTasks.reduce((acc, task) => {
+      const departmentCounts = tasks.reduce((acc, task) => {
         const dept = task.department;
         if (dept) {
           acc[dept] = (acc[dept] || 0) + 1;
@@ -110,12 +228,12 @@ const Dashboard = () => {
       );
       setRepairStatusByDepartment(repairStatusByDepartment);
 
-      const paymentTypeTotals = formattedTasks.reduce((acc, task) => {
+      const paymentTypeTotals = tasks.reduce((acc, task) => {
         const type = task.paymentType === "undefined" ? "Unknown" : task.paymentType;
         if (!acc[type]) {
           acc[type] = 0;
         }
-        acc[type] += task.totalBillRepair;
+        acc[type] += Number(task.totalBillRepair || 0);
         return acc;
       }, {});
 
@@ -127,24 +245,24 @@ const Dashboard = () => {
       );
       setPaymentTypeDistribution(paymentTypeDistribution);
 
-      const topRepairs = [...formattedTasks]
-        .sort((a, b) => b.totalBillRepair - a.totalBillRepair)
+      const topRepairs = [...tasks]
+        .sort((a, b) => Number(b.totalBillRepair || 0) - Number(a.totalBillRepair || 0))
         .slice(0, 5)
         .map(task => ({
           vendor: task.vendorName,
-          cost: task.totalBillRepair
+          cost: Number(task.totalBillRepair || 0)
         }));
       setVendorWiseRepairCosts(topRepairs);
-
-    } catch (err) {
-      console.error("Error fetching tasks:", err);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [tasks]);
 
   useEffect(() => {
-    fetchAllTasks();
+    const cachedTasks = useDataStore.getState().repairTasks;
+    const hasTasks = cachedTasks && cachedTasks.length > 0;
+    const hasMaster = (vendors && vendors.length > 0) || (transporters && transporters.length > 0);
+
+    fetchAllTasks(hasTasks);
+    fetchMasterData(hasMaster);
   }, []);
 
 
@@ -192,7 +310,14 @@ const Dashboard = () => {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Repair Status by Department */}
-        <ChartCard title="📊 Repair Status by Department">
+        <ChartCard
+          title={
+            <div className="flex items-center space-x-2">
+              <BarChart3 className="w-5 h-5 text-blue-600" />
+              <span>Repair Status by Department</span>
+            </div>
+          }
+        >
           {loading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -237,7 +362,14 @@ const Dashboard = () => {
         </ChartCard>
 
         {/* Task Status Overview */}
-        <ChartCard title="📈 Task Status Overview">
+        <ChartCard
+          title={
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              <span>Task Status Overview</span>
+            </div>
+          }
+        >
           {loading ? (
             <BarChartSkeleton />
           ) : (
@@ -274,7 +406,14 @@ const Dashboard = () => {
         </ChartCard>
 
         {/* Payment Type Distribution */}
-        <ChartCard title="💸 Payment Type Distribution">
+        <ChartCard
+          title={
+            <div className="flex items-center space-x-2">
+              <CreditCard className="w-5 h-5 text-green-600" />
+              <span>Payment Type Distribution</span>
+            </div>
+          }
+        >
           {loading ? (
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
@@ -311,7 +450,14 @@ const Dashboard = () => {
         </ChartCard>
 
         {/* Vendor-Wise Repair Costs */}
-        <ChartCard title="📦 Vendor-Wise Repair Costs">
+        <ChartCard
+          title={
+            <div className="flex items-center space-x-2">
+              <Building className="w-5 h-5 text-orange-600" />
+              <span>Vendor-Wise Repair Costs</span>
+            </div>
+          }
+        >
           {loading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -354,6 +500,110 @@ const Dashboard = () => {
             </div>
           )}
         </ChartCard>
+      </div>
+
+      {/* Master Lists Management Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Form Card */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <PlusCircle className="w-6 h-6 text-blue-600" />
+              <span>Add to Master Lists</span>
+            </h3>
+            <form onSubmit={handleMasterSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Type
+                </label>
+                <div className="flex space-x-6">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="masterType"
+                      value="vendor"
+                      checked={masterType === "vendor"}
+                      onChange={() => setMasterType("vendor")}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Vendor</span>
+                  </label>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="masterType"
+                      value="transporter"
+                      checked={masterType === "transporter"}
+                      onChange={() => setMasterType("transporter")}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Transporter</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {masterType === "vendor" ? "Vendor Name *" : "Transporter Name *"}
+                </label>
+                <input
+                  type="text"
+                  value={masterValue}
+                  onChange={(e) => setMasterValue(e.target.value)}
+                  placeholder={masterType === "vendor" ? "e.g. Acme Repairs" : "e.g. DHL"}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <Button type="submit" variant="primary" disabled={masterSubmitting} className="w-full">
+                {masterSubmitting ? "Saving..." : "Add to Master"}
+              </Button>
+            </form>
+          </div>
+        </div>
+
+        {/* Vendors Preview Card */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Users className="w-6 h-6 text-orange-600" />
+            <span>Current Vendors</span>
+          </h3>
+          <div className="overflow-y-auto max-h-[220px] divide-y divide-gray-100 pr-2">
+            {loadingMaster ? (
+              <p className="text-sm text-gray-500 py-2">Loading vendors...</p>
+            ) : vendors.length === 0 ? (
+              <p className="text-sm text-gray-500 py-2">No vendors added yet</p>
+            ) : (
+              vendors.map((vendor, idx) => (
+                <div key={idx} className="py-2 text-sm text-gray-700 font-medium capitalize">
+                  {vendor}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Transporters Preview Card */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Truck className="w-6 h-6 text-green-600" />
+            <span>Current Transporters</span>
+          </h3>
+          <div className="overflow-y-auto max-h-[220px] divide-y divide-gray-100 pr-2">
+            {loadingMaster ? (
+              <p className="text-sm text-gray-500 py-2">Loading transporters...</p>
+            ) : transporters.length === 0 ? (
+              <p className="text-sm text-gray-500 py-2">No transporters added yet</p>
+            ) : (
+              transporters.map((transporter, idx) => (
+                <div key={idx} className="py-2 text-sm text-gray-700 font-medium capitalize">
+                  {transporter}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

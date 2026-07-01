@@ -9,6 +9,7 @@ import StoreIn from "./components/StoreIn/StoreIn";
 import RepairAdvance from "./components/RepairAdvance/RepairAdvance";
 import MakePayment from "./components/MakePayment/MakePayment";
 import Login from "./components/Login/Login";
+import Users from "./components/Users/Users";
 import { MenuOutlined, CloseOutlined } from "@ant-design/icons";
 
 // function AppContent() {
@@ -92,21 +93,6 @@ import { MenuOutlined, CloseOutlined } from "@ant-design/icons";
 //       {/* footer */}
 
 //     </div>
-//       {/* Fixed Footer */}
-//         <footer className="bg-white border-t border-gray-200 py-3 px-4 flex-shrink-0">
-//           <div className="container mx-auto text-center text-sm text-gray-600">
-//             Powered by{' '}
-//             <a 
-//               href="https://www.botivate.in" 
-//               target="_blank" 
-//               rel="noopener noreferrer"
-//               className="text-indigo-600 hover:text-indigo-800 font-medium"
-//             >
-//               Botivate
-//             </a>
-//           </div>
-//         </footer>
-//       </div>
 //   );
 // }
 
@@ -130,6 +116,8 @@ function AppContent() {
         return <StoreIn />;
       case "make-payment":
         return <MakePayment />;
+      case "users":
+        return <Users />;
       default:
         return <Dashboard />;
     }
@@ -189,21 +177,6 @@ function AppContent() {
           <div className="p-8 h-full">{renderContent()}</div>
         </main>
       </div>
-
-      {/* Fixed Footer */}
-      <footer className="bg-white border-t border-gray-200 py-3 px-4">
-        <div className="container mx-auto text-center text-sm text-gray-600">
-          Powered by{' '}
-          <a 
-            href="https://www.botivate.in" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-indigo-600 hover:text-indigo-800 font-medium"
-          >
-            Botivate
-          </a>
-        </div>
-      </footer>
     </div>
   );
 }

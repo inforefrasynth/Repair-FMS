@@ -1,6 +1,5 @@
-const SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbxEiuVVQLhUEAUehvjkRxfjTJ2x6Q_wiQQ2yzGvf5aOm2Dm4ZLX6bMvQkrc9M34om-o/exec";
-const SHEET_Id = "1Gi6EVJ6ATYOmVPJDm-flLM3tuZazsqt11f9dhwUqrVQ";
+const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL;
+const SHEET_Id = import.meta.env.VITE_SHEET_ID;
 
 export const authenticateUser = async (username, password) => {
   try {
@@ -29,6 +28,7 @@ export const authenticateUser = async (username, password) => {
           password: (cells[1]?.v || "").trim(), // Password column
           role: (cells[2]?.v || "").trim(), // Role column
           access: (cells[3]?.v || "").trim(), // Page Access column
+          firmName: (cells[4]?.v || "").trim(), // Firm Name column
         };
       });
 
@@ -60,6 +60,7 @@ export const authenticateUser = async (username, password) => {
         name: authenticatedUser.username,
         role: authenticatedUser.role,
         access: accessList,
+        firmName: authenticatedUser.firmName,
       };
     }
 
