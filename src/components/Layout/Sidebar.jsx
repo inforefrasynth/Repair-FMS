@@ -33,7 +33,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   return (
     <div className="w-64 bg-white shadow-lg h-screen flex flex-col">
       <div className="p-6 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-800">Repair System</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Repair App</h1>
         <div className="mt-4 flex items-center space-x-3">
           <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
             <User className="w-5 h-5 text-white" />
