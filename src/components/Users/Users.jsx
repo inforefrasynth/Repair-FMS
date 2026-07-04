@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Search, Loader2Icon, ShieldAlert, Edit } from "lucide-react";
+import { Plus, Search, Loader2Icon, ShieldAlert, Edit, Filter } from "lucide-react";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
 import {
@@ -15,10 +15,14 @@ import toast from "react-hot-toast";
 const Users = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loaderSubmit, setLoaderSubmit] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedRole, setSelectedRole] = useState("All");
+  const [selectedFirmFilter, setSelectedFirmFilter] = useState("All");
 
   // Form states
   const [username, setUsername] = useState("");
@@ -212,11 +216,15 @@ const Users = () => {
 
   const filteredUsers = users.filter((user) => {
     const search = searchTerm.toLowerCase();
-    return (
+    const matchesSearch =
       user.username.toLowerCase().includes(search) ||
       user.firmName.toLowerCase().includes(search) ||
-      user.role.toLowerCase().includes(search)
-    );
+      user.role.toLowerCase().includes(search);
+
+    const matchesRole = selectedRole === "All" || (user.role || "").toLowerCase() === selectedRole.toLowerCase();
+    const matchesFirm = selectedFirmFilter === "All" || (user.firmName || "").toLowerCase() === selectedFirmFilter.toLowerCase();
+
+    return matchesSearch && matchesRole && matchesFirm;
   });
 
   return (
@@ -244,6 +252,14 @@ const Users = () => {
               />
             </div>
             <Button
+              variant={showFilters ? "primary" : "secondary"}
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Filter
+            </Button>
+            <Button
               variant="secondary"
               size="sm"
               onClick={fetchUsers}
@@ -252,6 +268,39 @@ const Users = () => {
               {loading ? "Refreshing..." : "Refresh"}
             </Button>
           </div>
+
+          {showFilters && (
+            <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fadeIn">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Role</label>
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  <option value="All">All Roles</option>
+                  <option value="Admin">Admin</option>
+                  <option value="User">User</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Firm Name</label>
+                <select
+                  value={selectedFirmFilter}
+                  onChange={(e) => setSelectedFirmFilter(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  <option value="All">All Firms</option>
+                  <option value="Pmmpl">Pmmpl</option>
+                  <option value="Purab">Purab</option>
+                  <option value="Rkl">Rkl</option>
+                  <option value="Refrasynth">Refrasynth</option>
+                  <option value="Refratech">Refratech</option>
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Users Table */}

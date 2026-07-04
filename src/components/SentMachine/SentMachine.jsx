@@ -46,23 +46,38 @@ const SentMachine = () => {
 
   const [loadingTasks, setLoadingTasks] = useState(false);
 
-  // console.log("selectedTask.taskNo", selectedTask?.taskNo);
-  // console.log("tasks", tasks);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedFirm, setSelectedFirm] = useState("All");
+  const [selectedDepartment, setSelectedDepartment] = useState("All");
+  const [selectedPriority, setSelectedPriority] = useState("All");
 
-  // const filteredTasks = tasks.length > 0 && tasks
-  //   .filter(
-  //     (task) => user?.role === "admin" || task.nameOfIndenter === user?.name
-  //   )
-  //   .filter(
-  //     (task) =>
-  //       task.machineName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //       task.taskNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //       task.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //       task.doerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //       task.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //       task.machinePartName.toLowerCase().includes(searchTerm.toLowerCase())
-  //   );
+  // Dynamically compute unique values for filters from accessible tasks
+  const uniqueFirms = ["All", ...new Set(filteredTasks.map(t => t.firmName).filter(Boolean))];
+  const uniqueDepartments = ["All", ...new Set(filteredTasks.map(t => t.department).filter(Boolean))];
+
+  // Filter function
+  const filterList = (list) => {
+    return list
+      .filter((task) => selectedFirm === "All" || task.firmName === selectedFirm)
+      .filter((task) => selectedDepartment === "All" || task.department === selectedDepartment)
+      .filter((task) => selectedPriority === "All" || (task.priority || "").toLowerCase() === selectedPriority.toLowerCase())
+      .filter((task) => {
+        if (!searchTerm) return true;
+        const term = searchTerm.toLowerCase();
+        return (
+          (task.machineName || "").toLowerCase().includes(term) ||
+          (task.taskNo || "").toLowerCase().includes(term) ||
+          (task.serialNo || "").toLowerCase().includes(term) ||
+          (task.doerName || "").toLowerCase().includes(term) ||
+          (task.department || "").toLowerCase().includes(term) ||
+          (task.machinePartName || "").toLowerCase().includes(term)
+        );
+      });
+  };
+
+  const displayedPendingTasks = filterList(pendingTasks);
+  const displayedHistoryTasks = filterList(historyTasks);
 
   const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL;
   const SHEET_Id = import.meta.env.VITE_SHEET_ID;
@@ -327,14 +342,65 @@ const SentMachine = () => {
               <input
                 type="text"
                 placeholder="Search tasks..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            <Button variant="secondary" size="sm">
+            <Button 
+              variant={showFilters ? "primary" : "secondary"} 
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+            >
               <Filter className="w-4 h-4 mr-2" />
               Filter
             </Button>
           </div>
+
+          {showFilters && (
+            <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fadeIn">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Firm Name</label>
+                <select
+                  value={selectedFirm}
+                  onChange={(e) => setSelectedFirm(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  {uniqueFirms.map((firm) => (
+                    <option key={firm} value={firm}>{firm}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Department</label>
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => setSelectedDepartment(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  {uniqueDepartments.map((dept) => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Priority</label>
+                <select
+                  value={selectedPriority}
+                  onChange={(e) => setSelectedPriority(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  <option value="All">All Priorities</option>
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         {activeTab === "pending" && (
@@ -353,7 +419,7 @@ const SentMachine = () => {
                   <TableHead>Priority</TableHead>
                 </TableHeader>
                 <TableBody className="overflow-auto max-h-[calc(100vh-200px)] block">
-                  {pendingTasks.map((task) => (
+                  {displayedPendingTasks.map((task) => (
                     <TableRow key={task.taskNo}>
                       <TableCell>
                         <Button
@@ -427,7 +493,7 @@ const SentMachine = () => {
                 <TableHead>Transportation Charges</TableHead>
               </TableHeader>
               <TableBody>
-                {historyTasks.map((task) => (
+                {displayedHistoryTasks.map((task) => (
                   <TableRow key={task.taskNo}>
                     <TableCell className="font-medium text-blue-600">
                       {task.taskNo}

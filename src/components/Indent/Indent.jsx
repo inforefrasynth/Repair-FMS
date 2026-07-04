@@ -22,8 +22,15 @@ const Indent = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Safe filtering with null checks
-  const filteredTasks = tasks
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedFirm, setSelectedFirm] = useState("All");
+  const [selectedDepartment, setSelectedDepartment] = useState("All");
+  const [selectedPriority, setSelectedPriority] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState("All");
+
+  // Base accessible tasks based on user role and firm
+  const accessibleTasks = tasks
     .filter(
       (task) => user?.role === "admin" || task.nameOfIndenter === user?.name
     )
@@ -32,7 +39,18 @@ const Indent = () => {
         if (!user?.firmName || user.firmName.toLowerCase() === "all") return true;
         return (task.firmName || "").toLowerCase() === user.firmName.toLowerCase();
       }
-    )
+    );
+
+  // Dynamically compute unique values for filters
+  const uniqueFirms = ["All", ...new Set(accessibleTasks.map(t => t.firmName).filter(Boolean))];
+  const uniqueDepartments = ["All", ...new Set(accessibleTasks.map(t => t.department).filter(Boolean))];
+
+  // Apply search term and dropdown filters
+  const filteredTasks = accessibleTasks
+    .filter((task) => selectedFirm === "All" || task.firmName === selectedFirm)
+    .filter((task) => selectedDepartment === "All" || task.department === selectedDepartment)
+    .filter((task) => selectedPriority === "All" || (task.priority || "").toLowerCase() === selectedPriority.toLowerCase())
+    .filter((task) => selectedStatus === "All" || (task.status || "").toLowerCase() === selectedStatus.toLowerCase())
     .filter(
       (task) =>
         (task.machineName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -194,7 +212,11 @@ const Indent = () => {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            <Button variant="secondary" size="sm">
+            <Button 
+              variant={showFilters ? "primary" : "secondary"} 
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+            >
               <Filter className="w-4 h-4 mr-2" />
               Filter
             </Button>
@@ -207,106 +229,158 @@ const Indent = () => {
               {loadingTasks ? "Refreshing..." : "Refresh"}
             </Button>
           </div>
+
+          {showFilters && (
+            <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-fadeIn">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Firm Name</label>
+                <select
+                  value={selectedFirm}
+                  onChange={(e) => setSelectedFirm(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  {uniqueFirms.map((firm) => (
+                    <option key={firm} value={firm}>{firm}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Department</label>
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => setSelectedDepartment(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  {uniqueDepartments.map((dept) => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Priority</label>
+                <select
+                  value={selectedPriority}
+                  onChange={(e) => setSelectedPriority(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  <option value="All">All Priorities</option>
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Status</label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Complete">Complete</option>
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="relative overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-white">
-                <TableHead className="min-w-[120px] whitespace-nowrap">Task Number</TableHead>
-                <TableHead className="min-w-[130px]">Firm Name</TableHead>
-                <TableHead className="min-w-[150px]">Machine Name</TableHead>
-                <TableHead className="min-w-[120px]">Serial No</TableHead>
-                <TableHead className="min-w-[120px]">Doer</TableHead>
-                <TableHead className="min-w-[120px]">Department</TableHead>
-                <TableHead className="min-w-[160px]">Machine Part Name</TableHead>
-                <TableHead className="min-w-[100px]">Priority</TableHead>
-                <TableHead className="min-w-[110px]">Start Date</TableHead>
-                <TableHead className="min-w-[110px]">End Date</TableHead>
-                <TableHead className="min-w-[100px]">Status</TableHead>
-              </TableHeader>
-            </Table>
-          </div>
-          <div className="overflow-x-auto max-h-[calc(100vh-200px)] overflow-y-auto">
-            <Table>
-              <TableBody>
-                {loadingTasks ? (
-                  <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8">
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="mt-4 text-gray-600">Loading tasks...</p>
+          <Table containerClassName="max-h-[calc(100vh-260px)] overflow-y-auto">
+            <TableHeader className="bg-white sticky top-0 z-10 shadow-sm">
+              <TableHead className="min-w-[120px] whitespace-nowrap">Task Number</TableHead>
+              <TableHead className="min-w-[130px]">Firm Name</TableHead>
+              <TableHead className="min-w-[150px]">Machine Name</TableHead>
+              <TableHead className="min-w-[120px]">Serial No</TableHead>
+              <TableHead className="min-w-[120px]">Doer</TableHead>
+              <TableHead className="min-w-[120px]">Department</TableHead>
+              <TableHead className="min-w-[160px]">Machine Part Name</TableHead>
+              <TableHead className="min-w-[100px]">Priority</TableHead>
+              <TableHead className="min-w-[110px]">Start Date</TableHead>
+              <TableHead className="min-w-[110px]">End Date</TableHead>
+              <TableHead className="min-w-[100px]">Status</TableHead>
+            </TableHeader>
+            <TableBody>
+              {loadingTasks ? (
+                <TableRow>
+                  <TableCell colSpan={11} className="text-center py-8">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      <p className="mt-4 text-gray-600">Loading tasks...</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filteredTasks.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={11} className="text-center py-8">
+                    <p className="text-gray-500">No tasks found</p>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredTasks.map((task) => (
+                  <TableRow key={task.id || task.taskNo || Math.random()} className="hover:bg-gray-50">
+                    <TableCell className="font-medium text-blue-600 min-w-[120px] whitespace-nowrap">
+                      {task.taskNo || "N/A"}
+                    </TableCell>
+                    <TableCell className="min-w-[130px]">
+                      <div className="break-words" title={task.firmName || ""}>
+                        {truncateText(task.firmName, 20)}
                       </div>
                     </TableCell>
-                  </TableRow>
-                ) : filteredTasks.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8">
-                      <p className="text-gray-500">No tasks found</p>
+                    <TableCell className="min-w-[150px]">
+                      <div className="break-words" title={task.machineName || ""}>
+                        {truncateText(task.machineName, 25)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="min-w-[120px]">
+                      <div className="break-words" title={task.serialNo || ""}>
+                        {truncateText(task.serialNo, 15)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="min-w-[120px]">
+                      <div className="break-words" title={task.doerName || ""}>
+                        {truncateText(task.doerName, 15)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="min-w-[120px]">
+                      <div className="break-words" title={task.department || ""}>
+                        {truncateText(task.department, 15)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="min-w-[160px]">
+                      <div className="break-words" title={task.machinePartName || ""}>
+                        {truncateText(task.machinePartName, 20)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="min-w-[100px]">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${getPriorityColor(
+                          task.priority
+                        )}`}
+                      >
+                        {task.priority || "N/A"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="min-w-[110px] whitespace-nowrap">
+                      {formatDate(task.taskStartDate)}
+                    </TableCell>
+                    <TableCell className="min-w-[110px] whitespace-nowrap">
+                      {formatDate(task.taskEndDate)}
+                    </TableCell>
+                    <TableCell className="min-w-[100px]">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize whitespace-nowrap ${getStatusColor(task.status)}`}>
+                        {task.status || "N/A"}
+                      </span>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  filteredTasks.map((task) => (
-                    <TableRow key={task.id || task.taskNo || Math.random()} className="hover:bg-gray-50">
-                      <TableCell className="font-medium text-blue-600 min-w-[120px] whitespace-nowrap">
-                        {task.taskNo || "N/A"}
-                      </TableCell>
-                      <TableCell className="min-w-[130px]">
-                        <div className="break-words" title={task.firmName || ""}>
-                          {truncateText(task.firmName, 20)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="min-w-[150px]">
-                        <div className="break-words" title={task.machineName || ""}>
-                          {truncateText(task.machineName, 25)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="min-w-[120px]">
-                        <div className="break-words" title={task.serialNo || ""}>
-                          {truncateText(task.serialNo, 15)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="min-w-[120px]">
-                        <div className="break-words" title={task.doerName || ""}>
-                          {truncateText(task.doerName, 15)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="min-w-[120px]">
-                        <div className="break-words" title={task.department || ""}>
-                          {truncateText(task.department, 15)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="min-w-[160px]">
-                        <div className="break-words" title={task.machinePartName || ""}>
-                          {truncateText(task.machinePartName, 20)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="min-w-[100px]">
-                        <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${getPriorityColor(
-                            task.priority
-                          )}`}
-                        >
-                          {task.priority || "N/A"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="min-w-[110px] whitespace-nowrap">
-                        {formatDate(task.taskStartDate)}
-                      </TableCell>
-                      <TableCell className="min-w-[110px] whitespace-nowrap">
-                        {formatDate(task.taskEndDate)}
-                      </TableCell>
-                      <TableCell className="min-w-[100px]">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize whitespace-nowrap ${getStatusColor(task.status)}`}>
-                          {task.status || "N/A"}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
       </div>
 

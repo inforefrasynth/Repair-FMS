@@ -34,6 +34,37 @@ const CheckMachine = () => {
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [loaderSubmit, setLoaderSubmit] = useState(false);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedFirm, setSelectedFirm] = useState("All");
+  const [selectedPriority, setSelectedPriority] = useState("All");
+
+  // Dynamically compute unique values for filters from repairTasks
+  const uniqueFirms = ["All", ...new Set(repairTasks.map(t => t.firmName).filter(Boolean))];
+
+  // Filter function
+  const filterList = (list) => {
+    return list
+      .filter((task) => selectedFirm === "All" || task.firmName === selectedFirm)
+      .filter((task) => selectedPriority === "All" || (task.priority || "").toLowerCase() === selectedPriority.toLowerCase())
+      .filter((task) => {
+        if (!searchTerm) return true;
+        const term = searchTerm.toLowerCase();
+        return (
+          (task.machineName || "").toLowerCase().includes(term) ||
+          (task.taskNo || "").toLowerCase().includes(term) ||
+          (task.serialNo || "").toLowerCase().includes(term) ||
+          (task.doerName || "").toLowerCase().includes(term) ||
+          (task.department || "").toLowerCase().includes(term) ||
+          (task.machinePartName || "").toLowerCase().includes(term) ||
+          (task.vendorName || "").toLowerCase().includes(term)
+        );
+      });
+  };
+
+  const displayedPendingTasks = filterList(pendingRepairTasks);
+  const displayedHistoryTasks = filterList(historyRepairTasks);
+
   const [formData, setFormData] = useState({
     billImage: null,
     billNo: "",
@@ -276,7 +307,7 @@ const CheckMachine = () => {
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              Pending ({pendingRepairTasks.length})
+              Pending ({displayedPendingTasks.length})
             </button>
             <button
               onClick={() => setActiveTab("history")}
@@ -286,7 +317,7 @@ const CheckMachine = () => {
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              History ({historyRepairTasks.length})
+              History ({displayedHistoryTasks.length})
             </button>
           </nav>
         </div>
@@ -298,14 +329,52 @@ const CheckMachine = () => {
               <input
                 type="text"
                 placeholder="Search tasks..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            <Button variant="secondary" size="sm">
+            <Button 
+              variant={showFilters ? "primary" : "secondary"} 
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+            >
               <Filter className="w-4 h-4 mr-2" />
               Filter
             </Button>
           </div>
+
+          {showFilters && (
+            <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fadeIn">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Firm Name</label>
+                <select
+                  value={selectedFirm}
+                  onChange={(e) => setSelectedFirm(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  {uniqueFirms.map((firm) => (
+                    <option key={firm} value={firm}>{firm}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Priority</label>
+                <select
+                  value={selectedPriority}
+                  onChange={(e) => setSelectedPriority(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  <option value="All">All Priorities</option>
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         {activeTab === "pending" && (
@@ -328,7 +397,7 @@ const CheckMachine = () => {
                 <TableHead>How Much</TableHead>
               </TableHeader>
               <TableBody>
-                {pendingRepairTasks.map((task) => (
+                {displayedPendingTasks.map((task) => (
                   <TableRow key={task.taskNo}>
                     <TableCell>
                       <Button
@@ -392,7 +461,7 @@ const CheckMachine = () => {
                 <TableHead>Bill Image</TableHead>
               </TableHeader>
               <TableBody>
-                {historyRepairTasks.map((task) => (
+                {displayedHistoryTasks.map((task) => (
                   <TableRow key={task.taskNo}>
                     <TableCell className="font-medium text-blue-600">
                       {task.taskNo}

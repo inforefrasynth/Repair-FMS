@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Search, Filter, Package } from "lucide-react";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
@@ -33,6 +33,75 @@ const MakePayment = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedFirm, setSelectedFirm] = useState("All");
+  const [selectedPaymentType, setSelectedPaymentType] = useState("All");
+  const [selectedPriority, setSelectedPriority] = useState("All");
+
+  const taskMap = useMemo(() => new Map(repairTasks.map(t => [t.taskNo, t])), [repairTasks]);
+
+  const historyWithFirm = useMemo(() => {
+    return historyRepairPayments.map(payment => {
+      const task = taskMap.get(payment.repairTaskNo);
+      return {
+        ...payment,
+        firmName: task?.firmName || "",
+        priority: task?.priority || ""
+      };
+    });
+  }, [historyRepairPayments, taskMap]);
+
+  // Combine unique values for filters
+  const uniqueFirms = useMemo(() => {
+    const firms = new Set([
+      ...pendingRepairPayments.map(t => t.firmName),
+      ...historyWithFirm.map(t => t.firmName)
+    ]);
+    return ["All", ...firms].filter(Boolean);
+  }, [pendingRepairPayments, historyWithFirm]);
+
+  const filterPending = (list) => {
+    return list
+      .filter((task) => selectedFirm === "All" || task.firmName === selectedFirm)
+      .filter((task) => selectedPaymentType === "All" || (task.paymentType || "").toLowerCase() === selectedPaymentType.toLowerCase())
+      .filter((task) => selectedPriority === "All" || (task.priority || "").toLowerCase() === selectedPriority.toLowerCase())
+      .filter((task) => {
+        if (!searchTerm) return true;
+        const term = searchTerm.toLowerCase();
+        return (
+          (task.machineName || "").toLowerCase().includes(term) ||
+          (task.taskNo || "").toLowerCase().includes(term) ||
+          (task.serialNo || "").toLowerCase().includes(term) ||
+          (task.doerName || "").toLowerCase().includes(term) ||
+          (task.vendorName || "").toLowerCase().includes(term) ||
+          (task.billNo || "").toLowerCase().includes(term)
+        );
+      });
+  };
+
+  const filterHistory = (list) => {
+    return list
+      .filter((task) => selectedFirm === "All" || task.firmName === selectedFirm)
+      .filter((task) => selectedPaymentType === "All" || (task.paymentType || "").toLowerCase() === selectedPaymentType.toLowerCase())
+      .filter((task) => selectedPriority === "All" || (task.priority || "").toLowerCase() === selectedPriority.toLowerCase())
+      .filter((task) => {
+        if (!searchTerm) return true;
+        const term = searchTerm.toLowerCase();
+        return (
+          (task.machineName || "").toLowerCase().includes(term) ||
+          (task.repairTaskNo || "").toLowerCase().includes(term) ||
+          (task.serialNo || "").toLowerCase().includes(term) ||
+          (task.vendorName || "").toLowerCase().includes(term) ||
+          (task.billNo || "").toLowerCase().includes(term) ||
+          (task.paymentNo || "").toLowerCase().includes(term)
+        );
+      });
+  };
+
+  const displayedPending = filterPending(pendingRepairPayments);
+  const displayedHistory = filterHistory(historyWithFirm);
   const [formData, setFormData] = useState({
     totalBillAmount: "",
     paymentType: "",
@@ -368,7 +437,7 @@ const MakePayment = () => {
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              Pending ({pendingRepairPayments.length})
+              Pending ({displayedPending.length})
             </button>
             <button
               onClick={() => setActiveTab("history")}
@@ -378,7 +447,7 @@ const MakePayment = () => {
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              History ({historyRepairPayments.length})
+              History ({displayedHistory.length})
             </button>
           </nav>
         </div>
@@ -390,14 +459,67 @@ const MakePayment = () => {
               <input
                 type="text"
                 placeholder="Search tasks..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            <Button variant="secondary" size="sm">
+            <Button 
+              variant={showFilters ? "primary" : "secondary"} 
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+            >
               <Filter className="w-4 h-4 mr-2" />
               Filter
             </Button>
           </div>
+
+          {showFilters && (
+            <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fadeIn">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Firm Name</label>
+                <select
+                  value={selectedFirm}
+                  onChange={(e) => setSelectedFirm(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  {uniqueFirms.map((firm) => (
+                    <option key={firm} value={firm}>{firm}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Payment Type</label>
+                <select
+                  value={selectedPaymentType}
+                  onChange={(e) => setSelectedPaymentType(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  <option value="All">All Types</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Online">Online</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="Advance">Advance</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Priority</label>
+                <select
+                  value={selectedPriority}
+                  onChange={(e) => setSelectedPriority(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                >
+                  <option value="All">All Priorities</option>
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* {activeTab === "pending" && (
@@ -509,7 +631,7 @@ const MakePayment = () => {
                 <TableHead>To Be Paid</TableHead>
               </TableHeader>
               <TableBody>
-                {pendingRepairPayments.map((task) => (
+                {displayedPending.map((task) => (
                   <TableRow key={task.taskNo}>
                     <TableCell>
                       <Button
@@ -583,7 +705,7 @@ const MakePayment = () => {
                 <TableHead>Bill Match</TableHead>
               </TableHeader>
               <TableBody>
-                {historyRepairPayments.map((task,index) => (
+                {displayedHistory.map((task,index) => (
                   <TableRow key={index}>
                     <TableCell className="font-medium text-blue-600">
                       {task.paymentNo}

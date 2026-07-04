@@ -1,18 +1,18 @@
 import React from 'react';
 
-export const Table = ({ children }) => {
+export const Table = ({ children, className = '', containerClassName = '' }) => {
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+    <div className={`overflow-x-auto ${containerClassName}`}>
+      <table className={`min-w-full bg-white border border-gray-200 rounded-lg ${className}`}>
         {children}
       </table>
     </div>
   );
 };
 
-export const TableHeader = ({ children }) => {
+export const TableHeader = ({ children, className = '' }) => {
   return (
-    <thead className="bg-gray-50">
+    <thead className={`bg-gray-50 ${className}`}>
       <tr>
         {children}
       </tr>
@@ -20,17 +20,17 @@ export const TableHeader = ({ children }) => {
   );
 };
 
-export const TableBody = ({ children }) => {
+export const TableBody = ({ children, className = '' }) => {
   return (
-    <tbody className="divide-y divide-gray-200">
+    <tbody className={`divide-y divide-gray-200 ${className}`}>
       {children}
     </tbody>
   );
 };
 
-export const TableRow = ({ children }) => {
+export const TableRow = ({ children, className = '' }) => {
   return (
-    <tr className="hover:bg-gray-50 transition-colors duration-150">
+    <tr className={`hover:bg-gray-50 transition-colors duration-150 ${className}`}>
       {children}
     </tr>
   );
