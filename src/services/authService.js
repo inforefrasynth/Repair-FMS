@@ -4,7 +4,8 @@ const SHEET_Id = import.meta.env.VITE_SHEET_ID;
 export const authenticateUser = async (username, password) => {
   try {
     const response = await fetch(
-      `${SCRIPT_URL}?sheetId=${SHEET_Id}&&sheet=Repair%20Login`
+      `${SCRIPT_URL}?sheetId=${SHEET_Id}&&sheet=Repair%20Login&_=${Date.now()}`,
+      { cache: "no-store" }
     );
 
     if (!response.ok) {
@@ -24,19 +25,21 @@ export const authenticateUser = async (username, password) => {
         // 2: role
         // 3: page access
         return {
-          username: (cells[0]?.v || "").trim(), // user Name column
-          password: (cells[1]?.v || "").trim(), // Password column
-          role: (cells[2]?.v || "").trim(), // Role column
-          access: (cells[3]?.v || "").trim(), // Page Access column
-          firmName: (cells[4]?.v || "").trim(), // Firm Name column
+          username: (cells[0]?.v ?? "").toString().trim(), // user Name column
+          password: (cells[1]?.v ?? "").toString().trim(), // Password column
+          role: (cells[2]?.v ?? "").toString().trim(), // Role column
+          access: (cells[3]?.v ?? "").toString().trim(), // Page Access column
+          firmName: (cells[4]?.v ?? "").toString().trim(), // Firm Name column
         };
       });
 
-      // Find the user that matches credentials
+      // Find the user that matches credentials (trim input to avoid stray whitespace mismatches)
+      const trimmedUsername = username.trim();
+      const trimmedPassword = password.trim();
       const authenticatedUser = users.find(
         (user) =>
-          user.username.toLowerCase() === username.toLowerCase() &&
-          user.password === password
+          user.username.toLowerCase() === trimmedUsername.toLowerCase() &&
+          user.password === trimmedPassword
       );
 
       console.log("All users data:", users); // Debug: log all users data
